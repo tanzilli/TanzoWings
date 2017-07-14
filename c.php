@@ -1,4 +1,9 @@
 <?
+	// a = App id
+	if (!isset($_GET["a"])) {
+		$_GET["a"]="1234";
+	}
+
 	// c = client id
 	if (!isset($_GET["c"])) {
 		$_GET["c"]="ABCD";
@@ -32,7 +37,7 @@
 		var run=false;
 		var broker="iot.eclipse.org";
 		var port=80;
-		var topic = "tanzowings/<? echo $_GET["c"]; ?>/cmd";
+		var topic = "TW<? echo $_GET["a"]; ?>/<? echo $_GET["c"]; ?>/cmd";
 		var client;
 
 		function onSuccess() {

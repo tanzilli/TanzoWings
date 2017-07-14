@@ -5,29 +5,23 @@
 <meta http-equiv='content-type' content='text/html; charset=ISO-8859-1'>
 
 
-<!-- jquesy -->
+<!-- jquery -->
 <script type="text/javascript" src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
-
 <!-- Bootstrap -->
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
-
 <!-- ThreeJS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/86/three.min.js"></script>
 <script src='http://threejs.org/examples/js/controls/OrbitControls.js'></script>
-
 <!-- Common functions -->
 <link rel="stylesheet" href="/webapp/tanzowings/tanzowings.css">
 <script src="common.js"></script>
-
 <!-- Client MQTT -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
-
 <!-- QR-Code generator-->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.2.0/qrcode.min.js"></script>
-
+<!-- Local functions -->
 <script src="tanzowings_mesh.js"></script>
-
 
 <script>
 var x_limit=300;
@@ -38,61 +32,74 @@ var max_clients=4;
 var clients=new Array();
 var qr_codes=new Array();
 var controller_urls=new Array();
+var airplanes=new Array();
 
+// Main animation loop 
 
 function loop(){
+	// Blocca tutte le animazioni se loop_on==false
 	if (loop_on==false) {
 		requestAnimationFrame(loop);
 		return;
 	}
 	
-	alpha+=delta_alpha;
-	airplane.mesh.rotation.y=alpha;
-	//airplane.mesh.rotation.x=-delta_alpha*100;
+	//$("#variabili_locali").html("alpha=" + alpha.toFixed(3) + " delta_alpha=" + delta_alpha.toFixed(3) + " X=" + airplane.mesh.position.x.toFixed(3) + " Y=" + airplane.mesh.position.y.toFixed(3) + " Z=" + airplane.mesh.position.z.toFixed(3) + " Vel=" + V.toFixed(3)  + " delta_y=" + delta_y.toFixed(3));
 
-	$("#variabili_locali").html("alpha=" + alpha.toFixed(3) + " delta_alpha=" + delta_alpha.toFixed(3) + " X=" + airplane.mesh.position.x.toFixed(3) + " Y=" + airplane.mesh.position.y.toFixed(3) + " Z=" + airplane.mesh.position.z.toFixed(3) + " Vel=" + V.toFixed(3)  + " delta_y=" + delta_y.toFixed(3));
-
-	airplane.mesh.position.x+=V*Math.cos(-alpha);
-	airplane.mesh.position.z+=V*Math.sin(-alpha);
-	airplane.mesh.position.y+=delta_y;
-
-	// Se esce dallo schermo lo rimette dentro dall'altro lato	
-	if (airplane.mesh.position.x>x_limit) {
-		airplane.mesh.position.x=x_limit;
-	}
-
-	if (airplane.mesh.position.x<-x_limit) {
-		airplane.mesh.position.x=-x_limit;
-	}
-
-	// Se esce dallo schermo lo rimette dentro dall'altro lato	
-	if (airplane.mesh.position.z>z_limit) {
-		airplane.mesh.position.z=z_limit;
-	}
-
-	if (airplane.mesh.position.z<-z_limit) {
-		airplane.mesh.position.z=-z_limit;
-	}
-
-	// Se esce dallo schermo lo rimette dentro dall'altro lato	
-	if (airplane.mesh.position.y>=y_top_limit) {
-		airplane.mesh.position.y=y_top_limit;
-	}
-
-	if (airplane.mesh.position.y<y_bottom_limit) {
-		airplane.mesh.position.y=y_bottom_limit;
-	}
-
+	for (i=0;i<max_clients;i++) {
+		if (airplanes[i]!=undefined) {
+			var airplane=airplanes[i];
+			
+			airplanes[i].alpha+=airplanes[i].delta_alpha;
+			airplanes[i].mesh.rotation.y=airplanes[i].alpha;
 	
-	airplane.propeller.rotation.x += airplane_propeller_delta;
+			airplanes[i].mesh.position.x+=airplanes[i].V*Math.cos(-airplanes[i].alpha);
+			airplanes[i].mesh.position.z+=airplanes[i].V*Math.sin(-airplanes[i].alpha);
+			airplanes[i].mesh.position.y+=airplanes[i].delta_y;
+		
+			// Se esce dallo schermo lo rimette dentro dall'altro lato	
+			if (airplanes[i].mesh.position.x>x_limit) {
+				airplanes[i].mesh.position.x=x_limit;
+			}
+		
+			if (airplanes[i].mesh.position.x<-x_limit) {
+				airplanes[i].mesh.position.x=-x_limit;
+			}
+		
+			// Se esce dallo schermo lo rimette dentro dall'altro lato	
+			if (airplanes[i].mesh.position.z>z_limit) {
+				airplanes[i].mesh.position.z=z_limit;
+			}
+		
+			if (airplanes[i].mesh.position.z<-z_limit) {
+				airplanes[i].mesh.position.z=-z_limit;
+			}
+		
+			// Se esce dallo schermo lo rimette dentro dall'altro lato	
+			if (airplanes[i].mesh.position.y>=y_top_limit) {
+				airplanes[i].mesh.position.y=y_top_limit;
+			}
+		
+			if (airplanes[i].mesh.position.y<y_bottom_limit) {
+				airplanes[i].mesh.position.y=y_bottom_limit;
+			}
+			airplanes[i].propeller.rotation.x += airplanes[i].propeller_delta;
+		}	
+	}
+	
+	
 	renderer.render(scene, camera);
 	requestAnimationFrame(loop);
 }
 
+//****************************************************************
+// Gestione messaggi MQTT in arrivo
+//****************************************************************
+
 var broker="iot.eclipse.org";
 var port=80;
-//var topic = "tanzowings/" + clientId + "/#";
-var topic = "tanzowings/#";
+var appid = randomString(5);
+var topic = "TW" + appid + "/+/cmd";
+//var topic = "tanzowings/#";
 var client;
 
 function onConnect() {
@@ -112,34 +119,57 @@ function onConnectionLost(responseObject) {
 	}
 }
 
+function test() {
+	console.log("Ci sono");
+	for (i=0;i<max_clients;i++) {
+		if (airplanes[i]!=undefined) {
+			console.log(i + " " + airplanes[i].V);
+		}
+	}	
+}	
+
+
 function onMessageArrived(message) {
 	//console.log("destinationName:" + message.destinationName);
 	//console.log("payloadString:" + message.payloadString);
+	var player;
 
 	if (message.destinationName.search("cmd")>-1) {
 		json_string = JSON.parse(message.payloadString);
 		$("#messaggi_mqtt").text(message.payloadString);
+
+			player=parseFloat(json_string.player);
+
 		
 		// Estrae i dati dell'accellerazione
 
 		if (json_string.cmd=="start") {
 			$("#player_name_" +  json_string.player).css("color", "red");
 			$("#qrcode_" +  json_string.player).hide(400);
+			
+			airplanes[player-1]=new AirPlane();
+			airplanes[player-1].mesh.position.x = 0;
+			airplanes[player-1].mesh.position.y = 10;
+			airplanes[player-1].mesh.position.z = 220;
+			
+			airplanes[player-1].V=0.5;
+			airplanes[player-1].alpha=Math.PI/2;
+			airplanes[player-1].delta_alpha=0;
+			airplanes[player-1].delta_y=0;
+			airplanes[player-1].propeller_delta=0.3;
+
+			scene.add(airplanes[player-1].mesh);
+			renderer.render(scene, camera);
 		}
 		
 		if (json_string.cmd=="move") {
 			acc_x = parseFloat(json_string.x);
 			acc_y = parseFloat(json_string.y);
-			delta_alpha = (acc_y/200);
-			delta_y = (-acc_x/10);
+			airplanes[player-1].delta_alpha = (acc_y/200);
+			airplanes[player-1].delta_y = (-acc_x/10);
 		}	
 	}
 }	
-
-var V;
-var alpha;
-var delta_alpha;
-var delta_y;
 
 $(document).ready(function(){
 	
@@ -150,7 +180,7 @@ $(document).ready(function(){
 		var typeNumber = 4;
 		var errorCorrectionLevel = 'L';
 		var qr = qrcode(typeNumber, errorCorrectionLevel);
-		controller_urls[i]='http://www.tanzolab.it/webapp/tw/c.php?c=' + clients[i] + '&p=' + (i+1);
+		controller_urls[i]='http://www.tanzolab.it/webapp/tw/c.php?a=' + appid + '&c=' + clients[i] + '&p=' + (i+1);
 
 		qr.addData(controller_urls[i]);
 		qr.make();
@@ -181,17 +211,6 @@ $(document).ready(function(){
 	createLights();
 	createGround();
 	
-	airplane = new AirPlane();
-	scene.add(airplane.mesh);
-
-	V=0;
-	alpha=Math.PI/2;
-	delta_alpha=0;
-	delta_y=0;
-	airplane.mesh.position.x = 0;
-	airplane.mesh.position.y = 10;
-	airplane.mesh.position.z = 220;
-
 	renderer.render(scene, camera);
 	controls = new THREE.OrbitControls(camera, renderer.domElement);
 	loop();

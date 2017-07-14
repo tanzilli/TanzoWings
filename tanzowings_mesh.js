@@ -131,7 +131,12 @@ function createScene() {
 }
 
 var AirPlane = function() {
-	
+	this.V;
+	this.alpha;
+	this.delta_alpha;
+	this.delta_y;
+	this.propeller_delta;
+
 	this.mesh = new THREE.Object3D();
 	
 	// Create the cabin
