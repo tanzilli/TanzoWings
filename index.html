@@ -24,13 +24,15 @@
 <script>
 var x_limit=300;
 var z_limit=300;
-var y_top_limit=150;
+var y_top_limit=230;
 var y_bottom_limit=10;
 var max_clients=4;
 var clients=new Array();
 var qr_codes=new Array();
 var controller_urls=new Array();
 var airplanes=new Array();
+
+var plane_colors=[Colors.blue,Colors.red,Colors.green,Colors.yellow];
 
 // Main animation loop 
 
@@ -145,7 +147,7 @@ function onMessageArrived(message) {
 			$("#player_name_" +  json_string.player).css("color", "red");
 			$("#qrcode_" +  json_string.player).hide(400);
 			
-			airplanes[player-1]=new AirPlane();
+			airplanes[player-1]=new AirPlane(plane_colors[player-1]);
 			airplanes[player-1].mesh.position.x = 0;
 			airplanes[player-1].mesh.position.y = 10;
 			airplanes[player-1].mesh.position.z = 220;
@@ -247,6 +249,10 @@ $(document).ready(function(){
 	$('#myModal').modal({
         show: 'true'
     }); 
+
+	$('#myModal').modal({
+        show: 'true'
+    }); 
 });
 
 </script>
@@ -259,7 +265,9 @@ $(document).ready(function(){
 		<div class="modal-content">
 			<div class="modal-header">
 				<button type="button" class="close" data-dismiss="modal">&times;</button>
-				<h2 class="modal-title">Benvenuti in TanzoWings</h2>
+				<center>
+					<img width="100%" src="logo_tanzowings_small.png">
+				</center>
 			</div>
 			<div class="modal-body">
 				<p class='lead'>
@@ -286,7 +294,9 @@ $(document).ready(function(){
 				</p>
 			</div>
 			<div class="modal-footer">
-				<button id="modal_ok" type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
+				<a href="https://github.com/tanzilli/TanzoWings" class="btn btn-default" >Source</a>
+				<a href="http://www.tanzolab.it/tanzowings" class="btn btn-default" >Come funziona</a>
+				<button id="modal_ok" type="button" class="btn btn-primary" data-dismiss="modal">Inizia</button>
 			</div>
 		</div>
 	</div>

@@ -1,10 +1,9 @@
 var Colors = {
-	red:0xf25346,
-	white:0xd8d0d1,
-	brown:0x59332e,
-	pink:0xF5986E,
-	brownDark:0x23190f,
-	blue:0x68c3c0,
+	red:0xFF0000,
+	white:0xFFFFFF,
+	yellow:0xFFFF00,
+	blue:0x0000FF,
+	green:0x00FF00,
 };
 
 var hemisphereLight, shadowLight;
@@ -130,7 +129,7 @@ function createScene() {
 	window.addEventListener('resize', handleWindowResize, false);
 }
 
-var AirPlane = function() {
+var AirPlane = function(plane_color=Colors.red) {
 	this.V;
 	this.alpha;
 	this.delta_alpha;
@@ -141,7 +140,7 @@ var AirPlane = function() {
 	
 	// Create the cabin
 	var geomCockpit = new THREE.BoxGeometry(60,50,50,1,1,1);
-	var matCockpit = new THREE.MeshPhongMaterial({color:Colors.red, shading:THREE.FlatShading});
+	var matCockpit = new THREE.MeshPhongMaterial({color:plane_color, shading:THREE.FlatShading});
 	var cockpit = new THREE.Mesh(geomCockpit, matCockpit);
 	cockpit.castShadow = true;
 	cockpit.receiveShadow = true;
