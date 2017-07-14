@@ -1,0 +1,443 @@
+<html>
+<head>
+<title>TanzoWings</title>
+
+<!-- jquesy -->
+<script type="text/javascript" src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+
+<!-- Bootstrap -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+<!-- ThreeJS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/86/three.min.js"></script>
+<script src='http://threejs.org/examples/js/controls/OrbitControls.js'></script>
+
+<!-- Common functions -->
+<link rel="stylesheet" href="/webapp/tanzowings/tanzowings.css">
+<script src="common.js"></script>
+
+<!-- Client MQTT -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
+
+<!-- QR-Code generator-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.2.0/qrcode.min.js"></script>
+
+<script>
+var Colors = {
+	red:0xf25346,
+	white:0xd8d0d1,
+	brown:0x59332e,
+	pink:0xF5986E,
+	brownDark:0x23190f,
+	blue:0x68c3c0,
+};
+
+var hemisphereLight, shadowLight;
+
+function createLights() {
+	// A hemisphere light is a gradient colored light; 
+	// the first parameter is the sky color, the second parameter is the ground color, 
+	// the third parameter is the intensity of the light
+	hemisphereLight = new THREE.HemisphereLight(0xaaaaaa,0x000000, .9)
+	
+	// A directional light shines from a specific direction. 
+	// It acts like the sun, that means that all the rays produced are parallel. 
+	shadowLight = new THREE.DirectionalLight(0xffffff, .9);
+
+	// Set the direction of the light  
+	shadowLight.position.set(150, 350, 350);
+	
+	// Allow shadow casting 
+	shadowLight.castShadow = true;
+
+	// define the visible area of the projected shadow
+	shadowLight.shadow.camera.left = -400;
+	shadowLight.shadow.camera.right = 400;
+	shadowLight.shadow.camera.top = 400;
+	shadowLight.shadow.camera.bottom = -400;
+	shadowLight.shadow.camera.near = 1;
+	shadowLight.shadow.camera.far = 1000;
+
+	// define the resolution of the shadow; the higher the better, 
+	// but also the more expensive and less performant
+	shadowLight.shadow.mapSize.width = 2048;
+	shadowLight.shadow.mapSize.height = 2048;
+	
+	// to activate the lights, just add them to the scene
+	scene.add(hemisphereLight);  
+	scene.add(shadowLight);
+}
+
+function handleWindowResize() {
+	// update height and width of the renderer and the camera
+	HEIGHT = window.innerHeight;
+	WIDTH = window.innerWidth;
+	renderer.setSize(WIDTH, HEIGHT);
+	camera.aspect = WIDTH / HEIGHT;
+	camera.updateProjectionMatrix();
+}
+
+var scene,
+		camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
+		renderer, container;
+
+function createScene() {
+	// Get the width and the height of the screen,
+	// use them to set up the aspect ratio of the camera 
+	// and the size of the renderer.
+	HEIGHT = window.innerHeight;
+	WIDTH = window.innerWidth;
+
+	// Create the scene
+	scene = new THREE.Scene();
+
+	// Add a fog effect to the scene; same color as the
+	// background color used in the style sheet
+	scene.fog = new THREE.Fog(0xf7d9aa, 100, 950);
+	
+	// Create the camera
+	aspectRatio = WIDTH / HEIGHT;
+	fieldOfView = 60;
+	nearPlane = 1;
+	farPlane = 10000;
+	camera = new THREE.PerspectiveCamera(
+		fieldOfView,
+		aspectRatio,
+		nearPlane,
+		farPlane
+		);
+	
+	// Set the position of the camera
+	camera.position.x = 0;
+	camera.position.z = 600;
+	camera.position.y = 300;
+
+	// Create the renderer
+	renderer = new THREE.WebGLRenderer({ 
+		// Allow transparency to show the gradient background
+		// we defined in the CSS
+		alpha: true, 
+
+		// Activate the anti-aliasing; this is less performant,
+		// but, as our project is low-poly based, it should be fine :)
+		antialias: true 
+	});
+
+	// Define the size of the renderer; in this case,
+	// it will fill the entire screen
+	renderer.setSize(WIDTH, HEIGHT);
+	
+	// Enable shadow rendering
+	renderer.shadowMap.enabled = true;
+	
+	// Add the DOM element of the renderer to the 
+	// container we created in the HTML
+	container = document.getElementById('world');
+	container.appendChild(renderer.domElement);
+	
+	// Listen to the screen: if the user resizes it
+	// we have to update the camera and the renderer size
+	window.addEventListener('resize', handleWindowResize, false);
+}
+
+
+var AirPlane = function() {
+	
+	this.mesh = new THREE.Object3D();
+	
+	// Create the cabin
+	var geomCockpit = new THREE.BoxGeometry(60,50,50,1,1,1);
+	var matCockpit = new THREE.MeshPhongMaterial({color:Colors.red, shading:THREE.FlatShading});
+	var cockpit = new THREE.Mesh(geomCockpit, matCockpit);
+	cockpit.castShadow = true;
+	cockpit.receiveShadow = true;
+	this.mesh.add(cockpit);
+	
+	// Create the engine
+	var geomEngine = new THREE.BoxGeometry(20,50,50,1,1,1);
+	var matEngine = new THREE.MeshPhongMaterial({color:Colors.white, shading:THREE.FlatShading});
+	var engine = new THREE.Mesh(geomEngine, matEngine);
+	engine.position.x = 40;
+	engine.castShadow = true;
+	engine.receiveShadow = true;
+	this.mesh.add(engine);
+	
+	// Create the tail
+	var geomTailPlane = new THREE.BoxGeometry(15,20,5,1,1,1);
+	var matTailPlane = new THREE.MeshPhongMaterial({color:Colors.red, shading:THREE.FlatShading});
+	var tailPlane = new THREE.Mesh(geomTailPlane, matTailPlane);
+	tailPlane.position.set(-35,25,0);
+	tailPlane.castShadow = true;
+	tailPlane.receiveShadow = true;
+	this.mesh.add(tailPlane);
+	
+	// Create the wing
+	var geomSideWing = new THREE.BoxGeometry(40,8,150,1,1,1);
+	var matSideWing = new THREE.MeshPhongMaterial({color:Colors.red, shading:THREE.FlatShading});
+	var sideWing = new THREE.Mesh(geomSideWing, matSideWing);
+	sideWing.castShadow = true;
+	sideWing.receiveShadow = true;
+	this.mesh.add(sideWing);
+	
+	// propeller
+	var geomPropeller = new THREE.BoxGeometry(20,10,10,1,1,1);
+	var matPropeller = new THREE.MeshPhongMaterial({color:Colors.brown, shading:THREE.FlatShading});
+	this.propeller = new THREE.Mesh(geomPropeller, matPropeller);
+	this.propeller.castShadow = true;
+	this.propeller.receiveShadow = true;
+	
+	// blades
+	var geomBlade = new THREE.BoxGeometry(1,100,20,1,1,1);
+	var matBlade = new THREE.MeshPhongMaterial({color:Colors.brownDark, shading:THREE.FlatShading});
+	
+	var blade = new THREE.Mesh(geomBlade, matBlade);
+	blade.position.set(8,0,0);
+	blade.castShadow = true;
+	blade.receiveShadow = true;
+	this.propeller.add(blade);
+	this.propeller.position.set(50,0,0);
+	this.mesh.add(this.propeller);
+};
+
+var airplane;
+
+function createPlane(){ 
+	airplane = new AirPlane();
+	airplane.mesh.scale.set(.25,.25,.25);
+	scene.add(airplane.mesh);
+}
+
+var airplane_propeller_delta=0.3;
+var delta_x=0;
+var delta_y=0;
+var delta_z=0;
+
+var Ground = function() {
+	this.mesh = new THREE.Object3D();
+	
+	var geomGround = new THREE.BoxGeometry(2000,10,2000,1,1,1);
+	var matGround = new THREE.MeshPhongMaterial({color:Colors.brown, shading:THREE.FlatShading});
+	var img = new THREE.MeshLambertMaterial({
+            map:THREE.ImageUtils.loadTexture('ground.jpg')
+        });
+	var ground = new THREE.Mesh(geomGround,img);
+	ground.receiveShadow = true;
+	this.mesh.add(ground);
+}
+
+var ground;
+
+function createGround(){ 
+	ground = new Ground();
+	ground.mesh.scale.set(.25,.25,.25);
+	ground.mesh.position.y = 0;
+	ground.mesh.position.x = 0;
+	ground.mesh.position.z = 0;
+	
+	scene.add(ground.mesh);
+}
+
+
+var loop_on=true;
+
+var x_limit=300;
+var z_limit=300;
+var y_top_limit=150;
+var y_bottom_limit=10;
+
+function loop(){
+	if (loop_on==false) {
+		requestAnimationFrame(loop);
+		return;
+	}
+	
+	alpha+=delta_alpha;
+	airplane.mesh.rotation.y=alpha;
+	//airplane.mesh.rotation.x=-delta_alpha*100;
+
+	$("#variabili_locali").html("alpha=" + alpha.toFixed(3) + " delta_alpha=" + delta_alpha.toFixed(3) + " X=" + airplane.mesh.position.x.toFixed(3) + " Y=" + airplane.mesh.position.y.toFixed(3) + " Z=" + airplane.mesh.position.z.toFixed(3) + " Vel=" + V.toFixed(3)  + " delta_y=" + delta_y.toFixed(3));
+
+	airplane.mesh.position.x+=V*Math.cos(-alpha);
+	airplane.mesh.position.z+=V*Math.sin(-alpha);
+	airplane.mesh.position.y+=delta_y;
+
+	// Se esce dallo schermo lo rimette dentro dall'altro lato	
+	if (airplane.mesh.position.x>x_limit) {
+		airplane.mesh.position.x=x_limit;
+	}
+
+	if (airplane.mesh.position.x<-x_limit) {
+		airplane.mesh.position.x=-x_limit;
+	}
+
+	// Se esce dallo schermo lo rimette dentro dall'altro lato	
+	if (airplane.mesh.position.z>z_limit) {
+		airplane.mesh.position.z=z_limit;
+	}
+
+	if (airplane.mesh.position.z<-z_limit) {
+		airplane.mesh.position.z=-z_limit;
+	}
+
+	// Se esce dallo schermo lo rimette dentro dall'altro lato	
+	if (airplane.mesh.position.y>=y_top_limit) {
+		airplane.mesh.position.y=y_top_limit;
+	}
+
+	if (airplane.mesh.position.y<y_bottom_limit) {
+		airplane.mesh.position.y=y_bottom_limit;
+	}
+
+	
+	airplane.propeller.rotation.x += airplane_propeller_delta;
+	renderer.render(scene, camera);
+	requestAnimationFrame(loop);
+}
+
+var broker="iot.eclipse.org";
+var port=80;
+var clientId=randomString(5);
+//var topic = "tanzowings/" + clientId + "/#";
+var topic = "tanzowings/#";
+var client;
+
+function onConnect() {
+	console.log("onConnect");
+	client.subscribe(topic);
+	console.log(topic);
+}
+
+function onSuccess() {
+	console.log("onSuccess");
+}
+
+function onConnectionLost(responseObject) {
+	console.log("onConnectionLost");
+	if (responseObject.errorCode !== 0) {
+		console.log("onConnectionLost:"+responseObject.errorMessage);
+	}
+}
+
+function onMessageArrived(message) {
+	//console.log("destinationName:" + message.destinationName);
+	//console.log("payloadString:" + message.payloadString);
+
+	if (message.destinationName.search("acc")>-1) {
+		json_string = JSON.parse(message.payloadString);
+		$("#messaggi_mqtt").text(message.payloadString);
+		
+		// Estrae i dati dell'accellerazione
+		acc_x = parseFloat(json_string.x);
+		acc_y = parseFloat(json_string.y);
+		delta_alpha = (acc_y/200);
+		delta_y = (-acc_x/10);
+	}
+}	
+
+var V;
+var alpha;
+var delta_alpha;
+var delta_y;
+
+$(document).ready(function(){
+	
+	createScene();
+	createLights();
+	createPlane();
+	createGround();
+
+	V=1.5;
+	alpha=111.04;
+	delta_alpha=0.01;
+	delta_y=0;
+	airplane.mesh.position.x = -123;
+	airplane.mesh.position.y = 100;
+	airplane.mesh.position.z = -0;
+
+	renderer.render(scene, camera);
+	controls = new THREE.OrbitControls(camera, renderer.domElement);
+	loop();
+
+	client = new Paho.MQTT.Client(broker, Number(port), "/ws",randomString(20));
+	client.onConnectionLost = onConnectionLost;
+	client.onMessageArrived = onMessageArrived;
+	client.connect({onSuccess:onConnect});
+
+	$("#delta_up").click(function(){
+		delta_alpha+=0.001;
+	});
+		
+	$("#delta_zero").click(function(){
+		delta_alpha=0.000;
+	});
+
+	$("#delta_down").click(function(){
+		delta_alpha-=0.001;
+	});
+
+	$("#v_up").click(function(){
+		V+=0.1;
+	});
+	$("#v_down").click(function(){
+		V-=0.1;
+	});
+
+	$("#loop_on").click(function(){
+		loop_on=true;
+	});
+	$("#loop_off").click(function(){
+		loop_on=false;
+	});
+
+
+	var typeNumber = 4;
+	var errorCorrectionLevel = 'L';
+	var qr = qrcode(typeNumber, errorCorrectionLevel);
+	var data='http://www.tanzolab.it/webapp/tanzowings/controller.php?client_id=' + clientId;
+	qr.addData(data);
+	qr.make();
+	document.getElementById('qrcode').innerHTML = qr.createImgTag();
+});
+
+</script>
+</head>
+
+<body>
+<div id="world"></div>
+<!--<div id="logo"><img src="logo_tanzowings.png" class="img-responsive center-block" width="80%"></div>-->
+<div id="top_section">
+	<span id="qrcode"></span>
+</div>
+<!--<audio autoplay><source src="tanzowings.mp3" type="audio/wav"></audio>-->
+<div id="cockpit">
+	<div class="container">
+		
+		<div class="row">
+			<div class="col-md-12" id="variabili_locali">
+				Variabili locali
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-md-12" id="messaggi_mqtt">
+				Messaggi MQTT
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-md-12">
+				<button id="delta_up" class="btn btn-info">Left</button>
+				<button id="delta_zero" class="btn btn-info">Zero</button>
+				<button id="delta_down" class="btn btn-info">Right</button>
+				<button id="v_down" class="btn btn-info">V-</button>
+				<button id="v_up" class="btn btn-info">V+</button>
+				<button id="loop_off" class="btn btn-info">Stop</button>
+				<button id="loop_on" class="btn btn-info">Run</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+</body>	
+</html>
+
+
