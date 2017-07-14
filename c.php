@@ -1,6 +1,12 @@
 <?
-	if (!isset($_GET["client_id"])) {
-		$_GET["client_id"]="ABCD";
+	// c = client id
+	if (!isset($_GET["c"])) {
+		$_GET["c"]="ABCD";
+	}
+
+	// p = player id
+	if (!isset($_GET["p"])) {
+		$_GET["p"]="TanzoWings";
 	}
 ?>
 
@@ -23,10 +29,10 @@
 	<script src="common.js" type="text/javascript"></script>
 	
 	<script>
-		var run=true;
+		var run=false;
 		var broker="iot.eclipse.org";
 		var port=80;
-		var topic = "tanzowings/<? echo $_GET["client_id"]; ?>/acc";
+		var topic = "tanzowings/<? echo $_GET["c"]; ?>/cmd";
 		var client;
 
 		function onSuccess() {
@@ -35,14 +41,18 @@
 
 		function onConnect() {
 			console.log("onConnect");
+			jstring='{"player":"<? echo $_GET["p"]; ?>","cmd":"start"}';
+			message = new Paho.MQTT.Message(jstring);
+			message.destinationName = topic;
+			client.send(message);
 			
 			setInterval(function() { 
 				if (run) { 
-					jstring='{"x":"' + $("#x").val() + '","y":"' + $("#y").val() + '"}';
+					jstring='{"player":"<? echo $_GET["p"]; ?>","cmd":"move", "x":"' + $("#x").val() + '","y":"' + $("#y").val() + '"}';
 					message = new Paho.MQTT.Message(jstring);
 					message.destinationName = topic;
 				} else {
-					jstring='{"x":"' + 0 + '","y":"' + 0 + '"}';
+					jstring='{"player":"<? echo $_GET["p"]; ?>","cmd":"move", "x":"' + 0 + '","y":"' + 0 + '"}';
 					message = new Paho.MQTT.Message(jstring);
 				}
 				message.destinationName = topic;
@@ -52,15 +62,15 @@
 		
 
 		$(document).ready(function() {	
-			console.log("<? echo $_GET["client_id"]; ?>");
-
 			client = new Paho.MQTT.Client(broker, Number(port), "/ws",randomString(20));
 			client.connect({onSuccess:onConnect});
 
 			$("#stop").click(function() {
+				run=false
 			});
 		
 			$("#go").click(function() {
+				run=true
 			});
 		
 			window.ondevicemotion = function(event) {
@@ -69,13 +79,10 @@
 				//var z = event.accelerationIncludingGravity.z; 
 			
 				accX = x;  
-				//accX = Math.round(x*10) / 10;  
 				accY = Math.round(y*10) / 10;  
-				//accZ = Math.round(z*10) / 10;  
-			
+
 				$("#x").val(accX.toFixed(3));
 				$("#y").val(accY.toFixed(3));
-				//$("#z").val(accZ);
 			}
 		});
 	</script>
@@ -86,7 +93,7 @@
 	<div data-role="page" id="foo">
 	
 		<div data-role="header">
-			<h1>TanzoWings controller</h1>
+			<h1><? echo "Player " . $_GET["p"]; ?></h1>
 		</div>
 	
 		<div role="main" class="ui-content">
@@ -109,7 +116,7 @@
 		</div>
 		
 		<div data-role="footer">
-			<h4>2017 &copy; www.TanzoLab.it </h4>
+			<h4>TanzoWings</h4>
 		</div>
 	</div>
 	

@@ -1,6 +1,9 @@
-<html>
+<!DOCTYPE html>
+<html lang="it">
 <head>
 <title>TanzoWings</title>
+<meta http-equiv='content-type' content='text/html; charset=ISO-8859-1'>
+
 
 <!-- jquesy -->
 <script type="text/javascript" src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
@@ -23,228 +26,19 @@
 <!-- QR-Code generator-->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.2.0/qrcode.min.js"></script>
 
+<script src="tanzowings_mesh.js"></script>
+
+
 <script>
-var Colors = {
-	red:0xf25346,
-	white:0xd8d0d1,
-	brown:0x59332e,
-	pink:0xF5986E,
-	brownDark:0x23190f,
-	blue:0x68c3c0,
-};
-
-var hemisphereLight, shadowLight;
-
-function createLights() {
-	// A hemisphere light is a gradient colored light; 
-	// the first parameter is the sky color, the second parameter is the ground color, 
-	// the third parameter is the intensity of the light
-	hemisphereLight = new THREE.HemisphereLight(0xaaaaaa,0x000000, .9)
-	
-	// A directional light shines from a specific direction. 
-	// It acts like the sun, that means that all the rays produced are parallel. 
-	shadowLight = new THREE.DirectionalLight(0xffffff, .9);
-
-	// Set the direction of the light  
-	shadowLight.position.set(150, 350, 350);
-	
-	// Allow shadow casting 
-	shadowLight.castShadow = true;
-
-	// define the visible area of the projected shadow
-	shadowLight.shadow.camera.left = -400;
-	shadowLight.shadow.camera.right = 400;
-	shadowLight.shadow.camera.top = 400;
-	shadowLight.shadow.camera.bottom = -400;
-	shadowLight.shadow.camera.near = 1;
-	shadowLight.shadow.camera.far = 1000;
-
-	// define the resolution of the shadow; the higher the better, 
-	// but also the more expensive and less performant
-	shadowLight.shadow.mapSize.width = 2048;
-	shadowLight.shadow.mapSize.height = 2048;
-	
-	// to activate the lights, just add them to the scene
-	scene.add(hemisphereLight);  
-	scene.add(shadowLight);
-}
-
-function handleWindowResize() {
-	// update height and width of the renderer and the camera
-	HEIGHT = window.innerHeight;
-	WIDTH = window.innerWidth;
-	renderer.setSize(WIDTH, HEIGHT);
-	camera.aspect = WIDTH / HEIGHT;
-	camera.updateProjectionMatrix();
-}
-
-var scene,
-		camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
-		renderer, container;
-
-function createScene() {
-	// Get the width and the height of the screen,
-	// use them to set up the aspect ratio of the camera 
-	// and the size of the renderer.
-	HEIGHT = window.innerHeight;
-	WIDTH = window.innerWidth;
-
-	// Create the scene
-	scene = new THREE.Scene();
-
-	// Add a fog effect to the scene; same color as the
-	// background color used in the style sheet
-	scene.fog = new THREE.Fog(0xf7d9aa, 100, 950);
-	
-	// Create the camera
-	aspectRatio = WIDTH / HEIGHT;
-	fieldOfView = 60;
-	nearPlane = 1;
-	farPlane = 10000;
-	camera = new THREE.PerspectiveCamera(
-		fieldOfView,
-		aspectRatio,
-		nearPlane,
-		farPlane
-		);
-	
-	// Set the position of the camera
-	camera.position.x = 0;
-	camera.position.z = 600;
-	camera.position.y = 300;
-
-	// Create the renderer
-	renderer = new THREE.WebGLRenderer({ 
-		// Allow transparency to show the gradient background
-		// we defined in the CSS
-		alpha: true, 
-
-		// Activate the anti-aliasing; this is less performant,
-		// but, as our project is low-poly based, it should be fine :)
-		antialias: true 
-	});
-
-	// Define the size of the renderer; in this case,
-	// it will fill the entire screen
-	renderer.setSize(WIDTH, HEIGHT);
-	
-	// Enable shadow rendering
-	renderer.shadowMap.enabled = true;
-	
-	// Add the DOM element of the renderer to the 
-	// container we created in the HTML
-	container = document.getElementById('world');
-	container.appendChild(renderer.domElement);
-	
-	// Listen to the screen: if the user resizes it
-	// we have to update the camera and the renderer size
-	window.addEventListener('resize', handleWindowResize, false);
-}
-
-
-var AirPlane = function() {
-	
-	this.mesh = new THREE.Object3D();
-	
-	// Create the cabin
-	var geomCockpit = new THREE.BoxGeometry(60,50,50,1,1,1);
-	var matCockpit = new THREE.MeshPhongMaterial({color:Colors.red, shading:THREE.FlatShading});
-	var cockpit = new THREE.Mesh(geomCockpit, matCockpit);
-	cockpit.castShadow = true;
-	cockpit.receiveShadow = true;
-	this.mesh.add(cockpit);
-	
-	// Create the engine
-	var geomEngine = new THREE.BoxGeometry(20,50,50,1,1,1);
-	var matEngine = new THREE.MeshPhongMaterial({color:Colors.white, shading:THREE.FlatShading});
-	var engine = new THREE.Mesh(geomEngine, matEngine);
-	engine.position.x = 40;
-	engine.castShadow = true;
-	engine.receiveShadow = true;
-	this.mesh.add(engine);
-	
-	// Create the tail
-	var geomTailPlane = new THREE.BoxGeometry(15,20,5,1,1,1);
-	var matTailPlane = new THREE.MeshPhongMaterial({color:Colors.red, shading:THREE.FlatShading});
-	var tailPlane = new THREE.Mesh(geomTailPlane, matTailPlane);
-	tailPlane.position.set(-35,25,0);
-	tailPlane.castShadow = true;
-	tailPlane.receiveShadow = true;
-	this.mesh.add(tailPlane);
-	
-	// Create the wing
-	var geomSideWing = new THREE.BoxGeometry(40,8,150,1,1,1);
-	var matSideWing = new THREE.MeshPhongMaterial({color:Colors.red, shading:THREE.FlatShading});
-	var sideWing = new THREE.Mesh(geomSideWing, matSideWing);
-	sideWing.castShadow = true;
-	sideWing.receiveShadow = true;
-	this.mesh.add(sideWing);
-	
-	// propeller
-	var geomPropeller = new THREE.BoxGeometry(20,10,10,1,1,1);
-	var matPropeller = new THREE.MeshPhongMaterial({color:Colors.brown, shading:THREE.FlatShading});
-	this.propeller = new THREE.Mesh(geomPropeller, matPropeller);
-	this.propeller.castShadow = true;
-	this.propeller.receiveShadow = true;
-	
-	// blades
-	var geomBlade = new THREE.BoxGeometry(1,100,20,1,1,1);
-	var matBlade = new THREE.MeshPhongMaterial({color:Colors.brownDark, shading:THREE.FlatShading});
-	
-	var blade = new THREE.Mesh(geomBlade, matBlade);
-	blade.position.set(8,0,0);
-	blade.castShadow = true;
-	blade.receiveShadow = true;
-	this.propeller.add(blade);
-	this.propeller.position.set(50,0,0);
-	this.mesh.add(this.propeller);
-};
-
-var airplane;
-
-function createPlane(){ 
-	airplane = new AirPlane();
-	airplane.mesh.scale.set(.25,.25,.25);
-	scene.add(airplane.mesh);
-}
-
-var airplane_propeller_delta=0.3;
-var delta_x=0;
-var delta_y=0;
-var delta_z=0;
-
-var Ground = function() {
-	this.mesh = new THREE.Object3D();
-	
-	var geomGround = new THREE.BoxGeometry(2000,10,2000,1,1,1);
-	var matGround = new THREE.MeshPhongMaterial({color:Colors.brown, shading:THREE.FlatShading});
-	var img = new THREE.MeshLambertMaterial({
-            map:THREE.ImageUtils.loadTexture('ground.jpg')
-        });
-	var ground = new THREE.Mesh(geomGround,img);
-	ground.receiveShadow = true;
-	this.mesh.add(ground);
-}
-
-var ground;
-
-function createGround(){ 
-	ground = new Ground();
-	ground.mesh.scale.set(.25,.25,.25);
-	ground.mesh.position.y = 0;
-	ground.mesh.position.x = 0;
-	ground.mesh.position.z = 0;
-	
-	scene.add(ground.mesh);
-}
-
-
-var loop_on=true;
-
 var x_limit=300;
 var z_limit=300;
 var y_top_limit=150;
 var y_bottom_limit=10;
+var max_clients=4;
+var clients=new Array();
+var qr_codes=new Array();
+var controller_urls=new Array();
+
 
 function loop(){
 	if (loop_on==false) {
@@ -297,7 +91,6 @@ function loop(){
 
 var broker="iot.eclipse.org";
 var port=80;
-var clientId=randomString(5);
 //var topic = "tanzowings/" + clientId + "/#";
 var topic = "tanzowings/#";
 var client;
@@ -323,15 +116,23 @@ function onMessageArrived(message) {
 	//console.log("destinationName:" + message.destinationName);
 	//console.log("payloadString:" + message.payloadString);
 
-	if (message.destinationName.search("acc")>-1) {
+	if (message.destinationName.search("cmd")>-1) {
 		json_string = JSON.parse(message.payloadString);
 		$("#messaggi_mqtt").text(message.payloadString);
 		
 		// Estrae i dati dell'accellerazione
-		acc_x = parseFloat(json_string.x);
-		acc_y = parseFloat(json_string.y);
-		delta_alpha = (acc_y/200);
-		delta_y = (-acc_x/10);
+
+		if (json_string.cmd=="start") {
+			$("#player_name_" +  json_string.player).css("color", "red");
+			$("#qrcode_" +  json_string.player).hide(400);
+		}
+		
+		if (json_string.cmd=="move") {
+			acc_x = parseFloat(json_string.x);
+			acc_y = parseFloat(json_string.y);
+			delta_alpha = (acc_y/200);
+			delta_y = (-acc_x/10);
+		}	
 	}
 }	
 
@@ -342,18 +143,54 @@ var delta_y;
 
 $(document).ready(function(){
 	
+	// Genera max_client client id clasuali per creare altrettanti QR-Code a video
+	for (i=0;i<max_clients;i++) {
+		clients[i]=randomString(5);
+
+		var typeNumber = 4;
+		var errorCorrectionLevel = 'L';
+		var qr = qrcode(typeNumber, errorCorrectionLevel);
+		controller_urls[i]='http://www.tanzolab.it/webapp/tw/c.php?c=' + clients[i] + '&p=' + (i+1);
+
+		qr.addData(controller_urls[i]);
+		qr.make();
+		qr_codes[i]=qr.createImgTag() ;
+		
+		//document.getElementById('qrcode').innerHTML += qr.createImgTag() + "<br>";
+	}
+
+	$html_contents="";
+	$html_contents+="<table>";
+	for (i=0;i<max_clients;i++) {
+		$html_contents+="<tr>";
+		$html_contents+="<td>";
+		$html_contents+="<a id='qrcode_" + (i+1) + "' href='" + controller_urls[i] + "' target='_blank'>";
+		$html_contents+=qr_codes[i];
+		$html_contents+="</a>";
+		$html_contents+="</td>";
+		$html_contents+="<td id='player_name_" + (i+1) + "' style='font-size:xx-large;'>";
+		$html_contents+="Player: " + (i+1);
+		$html_contents+="</td>";
+		$html_contents+="</tr>";
+	}
+	$html_contents+="</table>";
+	document.getElementById('qrcode').innerHTML += $html_contents;
+	
+
 	createScene();
 	createLights();
-	createPlane();
 	createGround();
+	
+	airplane = new AirPlane();
+	scene.add(airplane.mesh);
 
-	V=1.5;
-	alpha=111.04;
-	delta_alpha=0.01;
+	V=0;
+	alpha=Math.PI/2;
+	delta_alpha=0;
 	delta_y=0;
-	airplane.mesh.position.x = -123;
-	airplane.mesh.position.y = 100;
-	airplane.mesh.position.z = -0;
+	airplane.mesh.position.x = 0;
+	airplane.mesh.position.y = 10;
+	airplane.mesh.position.z = 220;
 
 	renderer.render(scene, camera);
 	controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -391,13 +228,6 @@ $(document).ready(function(){
 	});
 
 
-	var typeNumber = 4;
-	var errorCorrectionLevel = 'L';
-	var qr = qrcode(typeNumber, errorCorrectionLevel);
-	var data='http://www.tanzolab.it/webapp/tanzowings/controller.php?client_id=' + clientId;
-	qr.addData(data);
-	qr.make();
-	document.getElementById('qrcode').innerHTML = qr.createImgTag();
 });
 
 </script>
@@ -406,9 +236,19 @@ $(document).ready(function(){
 <body>
 <div id="world"></div>
 <!--<div id="logo"><img src="logo_tanzowings.png" class="img-responsive center-block" width="80%"></div>-->
+
 <div id="top_section">
-	<span id="qrcode"></span>
+		<div class="row">
+			<div class="col-md-2">
+				<span id="qrcode"></span>
+			</div>
+			<div class="col-md-10">
+				Visualizzare questa pagina web sullo schermo di un PC quindi leggere il QR-Code
+				con lo smartphone per prenderne il controllo di volo. (<a href="/tanzowings">per saperne di piu</a>)
+			</div>
+		</div>	
 </div>
+
 <!--<audio autoplay><source src="tanzowings.mp3" type="audio/wav"></audio>-->
 <div id="cockpit">
 	<div class="container">
