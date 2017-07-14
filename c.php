@@ -34,7 +34,7 @@
 	<script src="common.js" type="text/javascript"></script>
 	
 	<script>
-		var run=false;
+		var run=true;
 		var broker="iot.eclipse.org";
 		var port=80;
 		var topic = "TW<? echo $_GET["a"]; ?>/<? echo $_GET["c"]; ?>/cmd";

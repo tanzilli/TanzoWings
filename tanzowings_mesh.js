@@ -99,8 +99,8 @@ function createScene() {
 	
 	// Set the position of the camera
 	camera.position.x = 0;
-	camera.position.z = 600;
-	camera.position.y = 300;
+	camera.position.z = 450;
+	camera.position.y = 250;
 
 	// Create the renderer
 	renderer = new THREE.WebGLRenderer({ 

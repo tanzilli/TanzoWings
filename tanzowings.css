@@ -6,22 +6,20 @@
 	background: linear-gradient(#e4e0ba, #f7d9aa);
 }
 
-#top_section {
+#players {
 	z-index: 1; 
 	position: absolute;
-	top: 0px;
+	top: 0;
 	width: 100%;
 	height: 90px;
 }
 
-#cockpit {
+#msg {
 	z-index: 1; 
 	position: absolute;
-	bottom: 0px;
+	bottom: 0;
 	width: 100%;
-	height: 100px;
-	/* background: #FFFFFF;
-	opacity:0.6; *()
+	height: 60px;
 }
 
 #variabili_locali {
@@ -31,3 +29,7 @@
 #messaggi_mqtt {
 	color: darkgreen;
 }
+
+
+/* background: #FFFFFF; */
+/* opacity:0.6; */
