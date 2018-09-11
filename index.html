@@ -11,7 +11,7 @@
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 <!-- ThreeJS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/86/three.min.js"></script>
-<script src='http://threejs.org/examples/js/controls/OrbitControls.js'></script>
+<script src='https://threejs.org/examples/js/controls/OrbitControls.js'></script>
 <!-- Client MQTT -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
 <!-- QR-Code generator-->
@@ -95,8 +95,9 @@ function loop(){
 // Gestione messaggi MQTT in arrivo
 //****************************************************************
 
-var broker="iot.eclipse.org";
-var port=80;
+//var broker="iot.eclipse.org";
+var broker="tanzolab.it";
+var port=1884;
 var appid = randomString(5);
 var topic = "TW" + appid + "/+/cmd";
 //var topic = "tanzowings/#";
@@ -180,7 +181,7 @@ $(document).ready(function(){
 		var typeNumber = 4;
 		var errorCorrectionLevel = 'L';
 		var qr = qrcode(typeNumber, errorCorrectionLevel);
-		controller_urls[i]='http://www.tanzolab.it/webapp/tw/c.php?a=' + appid + '&c=' + clients[i] + '&p=' + (i+1);
+		controller_urls[i]='http://wings.tanzolab.it/c.php?a=' + appid + '&c=' + clients[i] + '&p=' + (i+1);
 
 		qr.addData(controller_urls[i]);
 		qr.make();

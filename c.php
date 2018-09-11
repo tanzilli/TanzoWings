@@ -35,8 +35,8 @@
 	
 	<script>
 		var run=true;
-		var broker="iot.eclipse.org";
-		var port=80;
+		var broker="tanzolab.it";
+		var port=1884;
 		var topic = "TW<? echo $_GET["a"]; ?>/<? echo $_GET["c"]; ?>/cmd";
 		var client;
 
